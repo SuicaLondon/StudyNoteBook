@@ -12,3 +12,11 @@
 | Mutability must be explicitly stated | Always mutable | 
 | Your "go to" data structure | Used in specific circumstances |
 | Everything you've seen so for is a structure (except View which is a protocol) | The ViewModel in MVVM is always a class(also, UIKit (old style iOS) is class-based)
+
+## How to use ForEach to iterate the data of Dictionary
+
+```Swift
+ForEach(self.dectionary.map{$0}, id: \.key) { test in
+  Text("\(test.name)")
+}
+```
