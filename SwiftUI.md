@@ -20,3 +20,15 @@ ForEach(self.dectionary.map{$0}, id: \.key) { test in
   Text("\(test.name)")
 }
 ```
+
+## Set the background color 
+```
+ZStack(alignment: .top) {
+    Rectangle()
+       .foregroundColor(Color.black)
+       .edgesIgnoringSafeArea(.top)
+    HStack(alignment: .center) {
+        // content                 
+    }
+}
+```
