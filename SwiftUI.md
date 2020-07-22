@@ -32,3 +32,9 @@ ZStack(alignment: .top) {
     }
 }
 ```
+
+## Clear the space on the left of DatePicker
+```
+DatePicker("", selection:  self.$time, in: ...Date(), displayedComponents: [.hourAndMinute, .date])
+.labelsHidden()
+```
