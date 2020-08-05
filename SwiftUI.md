@@ -38,3 +38,16 @@ ZStack(alignment: .top) {
 DatePicker("", selection:  self.$time, in: ...Date(), displayedComponents: [.hourAndMinute, .date])
 .labelsHidden()
 ```
+
+## Solve the problem of unclickable Spacer() in HStack
+```
+HStack {
+    XXXX
+    Spacer()
+    XXXX
+}
+.contentShape(Rectangle())
+.onTapGesture {
+    XXX
+}
+```
