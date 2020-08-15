@@ -54,3 +54,13 @@ HStack {
 
 ## Meet a bug that the actionSheet can not update its showing state when its button was added dynatically 
 It is necessary to use other sheet to replace it because when the button was clicked, the state will start from false
+
+## Hide the tabbar on new navigation view
+```
+// change the NavigationView to the topper level
+NavigationView {
+  TabView(selection: $selection){
+    ...
+  }
+}
+```
