@@ -33,6 +33,7 @@ ZStack(alignment: .top) {
 }
 ```
 
+
 ## Clear the space on the left of DatePicker
 ```
 DatePicker("", selection:  self.$time, in: ...Date(), displayedComponents: [.hourAndMinute, .date])
@@ -62,5 +63,15 @@ NavigationView {
   TabView(selection: $selection){
     ...
   }
+}
+```
+## Hide the navigation bar space from the navigation view
+```
+NavigationView {
+  SomeView {
+    ...
+  }
+  .navigationBarHidden(true)
+  .navigationBarTitle(Text("Any title"))
 }
 ```
