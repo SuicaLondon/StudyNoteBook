@@ -75,3 +75,11 @@ NavigationView {
   .navigationBarTitle(Text("Any title"))
 }
 ```
+
+## Clean the style from navigation link
+```
+NavigationLink(destination: SomeView()) {
+  SomeText()
+}
+.buttonStyle(PlainButtonStyle())
+```
