@@ -47,6 +47,7 @@ randperm(n) // returns a row vector including the integers from 1 to n in random
 randperm(n, k) // returns a row vector including k unique integers selected randomly from the interval [1, n] 
 randsample(n, k) returns a sample of k unique integers chosen randomly from [1, n] in row vector format
 
+norm(BA)
 find(B, n)
 round(B)
 log2(B)
