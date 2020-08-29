@@ -171,5 +171,6 @@ plot(x,y,'color', rand(1,3), 'linewidth', 2 )
 
 ## Function
 ```
+function [output1, output2, …, outputN] = functionName(input1, …,inputM)
 [output1, output2, …, outputN] = functionName(input1, …,inputM)
 ```
