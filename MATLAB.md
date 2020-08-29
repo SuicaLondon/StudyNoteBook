@@ -20,6 +20,7 @@ x=input('enter a number > ');
 ```
 randi([10, 50], 3, 5) // create a 3 x 5 matrix filled with integers chosen randomly from the interval [10, 50]
 randi(100, 4, 7)
+B = repmat(A,n)
 
 matrixname(row, column)
 ```
