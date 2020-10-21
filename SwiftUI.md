@@ -83,3 +83,6 @@ NavigationLink(destination: SomeView()) {
 }
 .buttonStyle(PlainButtonStyle())
 ```
+
+## The trap of fill in Path api
+fill will draw start from move
