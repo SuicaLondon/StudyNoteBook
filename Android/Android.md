@@ -275,3 +275,36 @@ color.adobe.com
     <dimen name="activity_vertical_marigin">16dp</dimen>
 </resources>
 ```
+
+## Design Patterns
+1. SRP: Single responsibility priciple
+2. OCP: Open/closed principle
+3. LSP: Liskov substitution principle
+4. ISP: Interface segregation principle
+5/ DIP: Dependency inversion priciple
+
+> Model
+* The combination of data, state and bussiness logic
+
+> View
+* XML files
+
+> Controller
+* glue for tying the app together
+* master controller for what happens in the application
+* handle the event from user and decide to update the state of the view
+
+<img src="https://miro.medium.com/max/606/1*smJy5uFyF5qucw6_7svnQA.png" alt="Controller">
+
+> Presenter
+* Activity/Fragment is now part of the view
+* Easy for JUnit test
+
+<img src="https://miro.medium.com/max/778/1*TuWeZzR14MmB-RBbjtZl-A.png" alt="Presenter">
+
+> View Model
+* responsible for wrapping the model and preparing observable data needed by the view
+* provides hooks for the view to pass event to the model
+* not tied to the view 
+
+<img src="https://cdn.journaldev.com/wp-content/uploads/2018/04/android-mvvm-pattern.png" alt="Presenter">
