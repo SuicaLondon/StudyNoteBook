@@ -308,3 +308,205 @@ color.adobe.com
 * not tied to the view 
 
 <img src="https://cdn.journaldev.com/wp-content/uploads/2018/04/android-mvvm-pattern.png" alt="Presenter">
+
+## Persisting Data
+### Key-Value sets
+> SharedPreferences APIIs
+``` Java
+getShareddPreferences(String fileName)
+getPreferences()
+
+// eg.
+Context context = getActivity();
+SharedPreferences sharedPref = context.getSharedPreferences(“com.example.myapp.PREFERENCE_FILE_KEY”, Context.MODE_PRIVATE);
+```
+> Write
+* get the preference file
+``` Java
+SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+```
+* create a SharedPreferences.Editor by calling edit() on your SharedPreferences
+``` Java
+SharedPreferences.Editor editor = sharedPref.edit();
+```
+* Pass the ***keys and values*** as you would do to a HashSet but specifying a type
+``` Java
+editor.putInt(getString(R.string.saved_high_score), newHighScore);
+```
+* Use commit to save the change
+``` Java
+editor.commit();
+```
+> Read
+* get int
+``` Java
+ SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+ int defaultValue = 10;
+ long highScore = sharedPref.getInt(“AGE_KEY”, defaultValue);
+
+ // other way
+ SharedPreferences sharedPref = getActivity().getPreferences(Context.MODE_PRIVATE);
+ int defaultValue = getResources().getInteger(R.string.saved_age_default);
+ long highScore = sharedPref.getInt(getString(R.string.saved_age), defaultValue);
+```
+### Files
+> for large amount of data, eg. image
+1. external storage
+* SD Card
+* getExternalFileDir()
+2. internal storage
+``` Java
+public boolean isExternalStorageWritable() {
+    String state = Environment.getExternalStorageState();
+    if (Enivornment.MEDIA_MOUNTED.equals(state)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+public boolean isExternalStorageReadable() {
+    String state = Environment.getExternalStorageState();
+    if (Enivornment.MEDIA_MOUNTED.equals(state) || Enivornment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+        return true;
+    } else {
+        return false;
+    }
+}
+```
+* built-in non-volatile memory
+* getFileDir()
+* getCacheDir()
+``` Java
+File file = new File(context.getFileDir(), filename);
+
+String filename = "myfile";
+String string = "Hello World"
+File file = new File(context.getFileDir(), filename)
+try {
+    outputStreem = openFileOutput(filename, Context.MODE_PRIVATE);
+    outputStream.write(string.getBytes());
+    outputStream.close();
+} catch (Exception e) {
+    e.printStackTrace()
+}
+
+public File getTempFile(Context context, String url) {
+    File file;
+    try {
+        String fileName = URL.parse(url).getLastPathSegment();
+        file = File.createTempFile(fileName, null, context.getCacheDir);
+    } catch (IOException e) {
+        // Error while creating file
+    }
+    return file;
+}
+``` 
+> Delete a File
+``` Java 
+myFile.delete();
+
+myContext.deleteFile(fileName);
+```
+### Rooms
+* implementation
+```
+implementation "android.arch.persistence.room:runtime:1.0.0"
+```
+* annotationProcessor
+```
+annotationProcessor "android.arch.persistence.room:compiler:1.0.0"
+```
+* testing Room migrations
+```
+testImplementation "android.arch.persistence.room:testing:1.0.0"
+```
+* RxJava
+```
+implementation "android.arch.persistence.room:runtime:1.0.0"
+```
+* Denendencies
+``` gradle
+dependencies {
+    def room_version = "2.2.5"
+    implementation "androidx.room.room:runtime:$room_version"
+    annotationProcessor "androidx.room.room:room-compiler:$room_version"
+
+    // optional - RxJava support for Room
+    implementation "androidx.room.room:rxjava2:$room_version"
+
+    // optional - Guava support for Room, include Optional and ListenableFuture
+    implementation "androidx.room.room:guava:$room_version"
+
+    // optional - Test helpers
+    testImplementation "androidx.room.room:runtime:$room_version"
+}
+```
+> Room provides an abstraction layer over SQLite
+
+> handle non-trivial amounts of structured data
+
+> The most common use case is to cache relevant pieces
+
+> There are 3 major components in Room
+1. Database
+* the database holder
+* it serves as the main access point for the underlying connection to the relational data
+* The class that's annotated with **@Database** should satisfy the following conditions:
+  * abstract class that extends RoomDatabase
+  * include the list of entities associated with the database within the annotation
+  * Contain an abstract method that has 0 arguments and return the class that is annotated with @ Dao
+* call Room.databaseBuilder() or Room.inMemoryDatabaseBuilder() to acquire an instance of DB
+2. Entity
+* Represents a **table** within the database
+3. DAO
+* Contains the **methods** used for accessing the database
+
+``` Java
+@Entity(indices = {@Index(value = {"first_name", "last_name"}, unique = ture)}) // optional parameters
+public class User {
+    @PrimaryKey()
+    private int uid;
+
+    @ColumnInfo(name = "first_name")
+    private String firstName;
+
+    @ColumnInfo(name = "last_name")
+    private String lastName;
+}
+```
+<img src="https://miro.medium.com/max/600/0*KoNREm-uuyv4i5tp.png" alt="room">
+
+### SQLite databases
+> relational database
+
+> Room forbid entity objects to reference each other
+
+> It requires the definition of foreign keys
+``` Java
+@Entity(foreignKeys = @ForeignKey(entity = User.class, parentColumns = "id", childColumns = "User_id"))
+```
+
+> Use ***@Embeded*** annotation to represent an object that you'd like to decompose into **its subfield within a table**
+
+### DAOs
+> Can be either an interface or an abstract class.
+``` Java
+@Dao
+public interface UserDao {
+    @Query("SELECT * FROM user")
+    List<User> getAll();
+
+    @Query("SELECT * FROM user WHERE uid IN (:userIds)")
+    List<User> loadAllByIds(int[] userIds);
+
+    @Query("SELECT * FROM user WHERE first_name LIKE :first AND last_name LIKE :last LIMIT 1")
+    List<User> findByName(String first, String last);
+
+    @Insert
+    void insertAll(User... users);
+
+    @Delete
+    void delete(User user)
+}
+```
