@@ -510,3 +510,55 @@ public interface UserDao {
     void delete(User user)
 }
 ```
+> Room creates each DAO implementation at compile time.
+
+> Room does not support database access on the main thread unless you have called **allowMainThreadQueries()**
+
+### DataBase
+* It must be Abstract
+* it must extend RoomDatabase 
+* It declares an abstract Dao
+``` Java
+@DataBase(entities = {User.class}, version = 1)
+public abstract class AppDatabase extends RoomDatabase {
+    public abstract UserDao userDao();
+}
+
+AppDatabase db = Room.databaseBuilder(getApplicationContext(), AppDatabase.class, "database-name").build();
+```
+
+## Application Not Responding(ANR)
+> It will show the ANR dialog if
+1. No response to an input event within 5 seconds
+2. A broadcaseReceiver hasn't finished excuting within 10 seconds
+> Activities should do as little as possible to set up in key life-cycle methods such as onCreate() and onResume()
+
+* To create a worker thread for longer operations use **AsyncTask class**
+    * Extend AsyncTask and implement the doInBackground() method to perform the work
+    * To post progress to the user interface, call publishProgress(), which invokes the onProgressUpdate() callback method
+``` Java
+private class DownloadFilesTask extends AsyncTask<URL, Interger, Long> {
+    // Do the long-running work in here
+    protected Long doInBackground(URL... urls) {
+        int count = urls.length;
+        long totalSize = 0;
+        for(int i = 0; i<count; i++>) {
+            totalSize += Downloader.downloadFile(urls[i]);
+            publishProgress((int)(i/(float) count) * 100);
+            if (isCancelled()) break;
+        }
+        return totalSize;
+    }
+
+    protected void onProgressUpdate(Integer...progress) {
+        setProgressPercent(progress[0])
+    }
+
+    protected void onPostExcute(Long result) {
+        showNotification("Downloaded" + result + " bytes");
+    }
+}
+
+new DownloadFilesTask().execute(url1, url2, url3);
+```
+> Use runOnUiTread() when you want to update your UI from a Non-UI Thread
