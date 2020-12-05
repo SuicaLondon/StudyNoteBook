@@ -792,3 +792,111 @@ public void run() throws IOException {
     })
 }
 ```
+
+
+## Sensor
+1. Motion sensors
+    1. accerkerineter
+    2. gravity
+    3. gyroscopes
+    4. ritatuibak vector
+2. Environmental sensors
+    1. ambient air temperature (thermometers)
+    2. pressure (barometers)
+    3. illumination (photometers)
+    4. humidity
+3. Position sensors
+    1. orientation
+    2. magnetometers
+
+## Time
+``` Java
+Date date = new Date(msecs);
+DataFormat formatter = new SimpleDateFormat("HH:mm:ss");
+formatter.setTimeZone(TimeZone.getTimeZone("UTC"));
+String dateString = formatter.format(date);
+```
+
+## Location
+> Permissions
+``` XML
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.google.android.gms.location.sample.basiclocationsample">
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <!-- <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/> -->
+</manifest>
+```
+
+``` Java
+private FusedLocationProviderClient mFusedLocationClient;
+
+@Override
+protected void onCreate(Bundle savedInstanceState) {
+    mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+}
+
+mFusedLocationClient.getLastLocation()
+    .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+        @Override
+        public void onSuccess(Location location) {
+            // Got last known location. In some rate situations. this can be null
+            if(location!=null) {
+                // Logic to handle location object
+            }
+        }
+    })
+```
+
+> connect to location services and make a location request
+``` Java
+LocationRequest mLocationRequest = new LocationRequest();
+mLocationRequest.setInterval(10000);
+mLocationRequest.setFastestInterval(5000);
+mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+startLocationUpdates();
+
+private void startLocationUpdates() {
+    mFusedLocationClient.requestLocationUpdates(myLocationRequest, mLocationCallback, null)
+}
+
+mLocationCallback = new LocationCallback() {
+    @Override
+    public void onLocationResult(LocationResult locationResult) {
+        super.onLocationResult(locationResult);
+        mCurrentLocation = locationResult.getLastLocation();
+    }
+}
+```
+
+> Stopping
+``` Java
+private void stopLocationUpdates() {
+    FusedLocationProviderClient.removeLocationUpdates(mLocationCallback);
+}
+```
+
+* ActivityCompat.checkSelfPermission
+``` Java
+if ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) && (ActivityCompat.checkSelfPermission(activity, android.Manifest.permission.ACCESS_FINE_LOCATION)) != PackageManager.PERMISSION_GRANTED) {
+    if (ActivityCompact.shouldShowRequestPermissionRationale(thisActivity, android.Manifest.permission.ACCESS_FINE_LOCATION)) {
+
+    } else {
+        ActivityCompact.requestPermissions(thisActivity, new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, MY_PERMISSIONS_REQUEST_LOCATION);
+    }
+}
+```
+
+* Handle the permissions request response
+``` Java
+@Override
+public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+    switch (requestCode) {
+        case MY_PERMISSIONS_REQUEST_LOCATION: {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // oernussuib was grabted
+            } else {
+                // permission denied
+            }
+        }
+    }
+}
+```
