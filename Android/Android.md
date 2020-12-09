@@ -827,6 +827,10 @@ String dateString = formatter.format(date);
 ```
 
 ``` Java
+implementation 'com.google.android.gms:play-services-location:11.0.2'
+```
+
+``` Java
 private FusedLocationProviderClient mFusedLocationClient;
 
 @Override
