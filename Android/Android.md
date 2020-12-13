@@ -904,3 +904,284 @@ public void onRequestPermissionsResult(int requestCode, String permissions[], in
     }
 }
 ```
+
+## Computations
+### Heavy computation
+1. AsyncTask
+    *  for short-ish background computation
+2. Threads
+    * for parallel computation
+3. Service
+    * for active computation on the UI thread (Service) or a separate thread (IntentService)
+
+### Services
+1. Foreground
+    * performs some operation which is noticeable to the user
+    * must display a status bar icon
+    * continues running even when the user isn't interacting with the app
+    * is the only safe way to do long running currently
+2. Background
+    * performs an operation that isn't directly noticed by the user
+    * Increasingly unreliable in order to save battery
+3. Bound
+    * when an application component binds to it by calling **bindService()**
+    * offers a **client-server interface** that allows components to interact with the service send requests, receive results, and
+    * A bound service runs only as long as another
+
+> Method
+* OnCreate()
+* OnStartCommand()
+    * called when the **startService()** was exerted
+* OnBind()
+    * invokes this method by calling bindService() when another component wants to bind with the service.
+* OnDestroy()
+``` XML
+<manifest ... > ...
+  <service android:name=".ExampleService" />
+ ...
+ </application>
+ </manifest>
+```
+
+<img src="https://www.tutlane.com/images/android/android_services_started_bound_services_life_cycle.png" alt="service life cycle">
+
+
+* service was called by **startService()** which results in a call to the service’s **OnStartCommand()**
+* The service can run in the background indefinitely, even if the component that started it is destroyed
+* The service should stop itself when its job is completed by calling **stopSelf()**
+* Or another component can stop it by calling **stopService()**
+* An application component such as an activity can start the service by calling **startService()** and passing an Intent that specifies the service and includes any data for the service to use.
+* The service receives the Intent in the **OnStartCommand()**
+
+> Confusion about the Service
+* A Service is not a separate process
+* A Service is not a thread
+* Thus a Service itself is very simple, two main features:
+    * A facility for the application to tell the system about something it wants to be doing in the background
+    * A facility for an application to expose some of its functionality to other applications.
+
+``` Java
+ Intent intent = new Intent(this, HelloService.class);
+ startService(intent);
+```
+
+> An app is considered to be in the foreground if any of the following is true:
+* It has a visible activity, whether the activity is started or paused
+* It has a foreground service
+
+> Another foreground app is connected to the app, either by binding to one of its services or by making use of one of its content providers. For example, the app is in the foreground if another app binds to its:
+* IME (Input Method Editor) 
+* Wallpaper service 
+* Notification listener
+* Voice or text service
+> If none of those conditions is true, the app is considered to be in the background.
+
+### Limitations
+> To reduce the danger of apps sucking resources while in the background
+* Android 8.0 (API level 26) imposes limitations on what apps can do while running in the background
+* The system doesn't allow a background app to create a background service
+* Android 8.0 requires the apps to call **startForegroundService()** to start a new service in the foreground
+    * After the system has created the service, the app has five seconds to call the service's startForeground() method to show the new service's user-visible notification.
+* If the app does not call startForeground() within the time limit, the system stops the service and declares the app to be ANR
+
+``` Java
+ForegroundService sensorService = new ForegroundService("Hello"); Intent serviceIntent = new Intent(getApplicationContext(), sensorService.getClass());
+startForegroundService(serviceIntent);
+```
+``` XML
+<application
+    android:allowBackup="true" 
+    android:icon="@mipmap/ic_launcher" 
+    android:label="@string/app_name" 
+    android:roundIcon="@mipmap/ic_launcher_round" 
+    android:supportsRtl="true" 
+    android:theme="@style/AppTheme">
+    <activity android:name=".MainActivity">
+        <intent-filter>
+            <action android:name="android.intent.action.MAIN" /> 
+            <category android:name="android.intent.category.LAUNCHER" />
+        </intent-filter> 
+    </activity>
+    <service 
+        android:name=".ForegroundService" 
+        android:enabled="true" >
+    </service> 
+</application>
+```
+``` Java
+public class ForegroundService extends IntentService {
+    private static final int FOREGROUND_ID = 123456; 
+    private static final String CHANNEL_ID = "9876543"; 
+    public int counter=0;
+    private Timer timer;
+    private TimerTask timerTask;
+    private String textTitle= "This is the Title";
+    private String textContent= "This is the content of the notification";
+
+    /**
+    * Creates an IntentService. Invoked by your subclass's constructor.
+    *
+    * @param name Used to name the worker thread, important only for debugging. */
+    public ForegroundService(String name) { 
+        super(name);
+    }
+    public ForegroundService() { 
+        super("this is my service");
+    }
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Notification notification = mBuilder.build();
+        startForeground(FOREGROUND_ID, notification)
+    }
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) { 
+        super.onStartCommand(intent, flags, startId);
+        startTimer();
+        return START_STICKY;
+    }
+    NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID) 
+        .setSmallIcon(R.drawable.notification_icon)
+        .setContentTitle(textTitle)
+        .setContentText(textContent)
+        .setPriority(NotificationCompat.PRIORITY_LOW);
+    public void startTimer() {
+        //set a new Timer
+        timer = new Timer();
+        //initialize the TimerTask's job 
+        initializeTimerTask();
+        //schedule the timer, to wake up every 1 second 
+        timer.schedule(timerTask, 1000, 1000); 
+    }
+    public void initializeTimerTask() {
+         timerTask = new TimerTask() {
+            public void run() {
+            Log.i("in timer", "in timer ++++ "+ (counter++));
+            }
+        };
+    }
+}
+```
+
+## Location Tracking
+* specifies a number of parameters
+* A **callback function** called when a fix(a location) has been found
+* A Looper (ignore)
+
+> App must connect to location services and make a location request before requesting location updates
+
+> Once a location request is in place you can start the regular updates by calling **requestLocationUpdates()**
+``` Java
+LocationRequest mLocationRequest = new LocationRequest();
+mLocationRequest.setInterval(10000); // in msecs
+mLocationRequest.setFastestInterval(5000); // in secs
+mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+startLocationUpdates();
+
+ private void startLocationUpdates() {
+     mFusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback, null /* Looper */);
+ }
+
+ mLocationCallback = new LocationCallback() { 
+    @Override
+    public void onLocationResult(LocationResult locationResult) { 
+        super.onLocationResult(locationResult);
+        mCurrentLocation = locationResult.getLastLocation(); 
+        mLastUpdateTime = DateFormat.getTimeInstance().format(new Date()); 
+        updateLocationUI(); // do something with the location
+    } };
+ private void stopLocationUpdates() {
+     mFusedLocationClient.removeLocationUpdates(mLocationCallback);
+ }
+```
+
+### Location in background
+> Tracking locations in the background requires an **IntentService**
+    * Define an **onHandleIntent** method to capture the identification of the location
+
+> **onclicklistener** for start
+``` Java
+Intent intent = new Intent(context, LocationIntent.class);
+mLocationPendingIntent = PendingIntent.getService(context, 1, intent, PendingIntent.FLAG_UPDATE_CURRENT); 
+Task<Void> locationTask = mFusedLocationClient.requestLocationUpdates(mLocationRequest,
+mLocationPendingIntent);
+// ^^^^^^^^^^^^^^^^^^^^ this is instead of the callback and the Looper
+if (locationTask != null) { 
+    locationTask.addOnFailureListener(new OnFailureListener() {
+        @Override
+        public void onFailure(@NonNull Exception e) {
+            if (e instanceof ApiException) {
+                Log.w(TAG, ((ApiException) e).getStatusMessage());
+            } else {
+                Log.w(TAG, e.getMessage());
+            } 
+        }
+    });
+    locationTask.addOnCompleteListener(new OnCompleteListener<Void>() { 
+        @Override
+        public void onComplete(@NonNull Task<Void> task) { 
+            Log.d(TAG, "restarting gps successful!");
+        } 
+    });
+    } 
+}
+```
+
+> The Location Intent
+``` Java
+public static class LocationIntent extends IntentService { 
+    public LocationIntent(String name) {
+        super(name);
+    }
+    public LocationIntent() {
+        super("Location Intent"); 
+    }
+    /**
+    * called when a location is recognised * @param intent
+    */
+    @Override
+    protected void onHandleIntent(Intent intent) { 
+        if (LocationResult.hasResult(intent)) {
+            LocationResult locResults = LocationResult.extractResult(intent); 
+            if (locResults != null) {
+                for (Location location : locResults.getLocations()) {
+                    if (location == null) continue;
+                        //do something with the location
+                        Log.i("New Location", "Current location: " + location); mCurrentLocation = location;
+                        mLastUpdateTime = DateFormat.getTimeInstance().format(new Date()); Log.i("MAP", "new location " + mCurrentLocation.toString());
+                        // check if the activity has not been closed in the meantime
+                        if (MapsActivity.getActivity()!=null)
+                            // any modification of the user interface must be done on the UI Thread. // The Intent Service is running
+                            // in its own thread, so it cannot communicate with the UI. 
+                            MapsActivity.getActivity().runOnUiThread(new Runnable() {
+                            public void run() {
+                                Log.i(“New Location”, “Current location: “+ location);
+                            } 
+                        });
+                }
+            }
+        }
+}
+```
+
+> If the app requires constant tracking of values even when app is in the background
+* set up the sensor in onCreate
+``` Java
+@Override
+public void onCreate() {
+    super.onCreate();
+    barometer= new StandardAndroidBarometer(this, database);
+}
+```
+* start sensing in onStartCommand
+``` Java
+@Override
+public int onStartCommand(Intent intent, int flags, int startId) {
+    super.onStartCommand(intent, flags, startId);
+    barometer.start(this)
+}
+```
+
+### The Sensor (Barometer)
+
+
