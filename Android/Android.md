@@ -1323,3 +1323,279 @@ BroadcastReceiver mDozeReceiver = new BroadcastReceiver() {
     }
 };
 ```
+
+## Geofences
+* combines awareness of the user's current location
+    * specified via latitude and longitude
+* A **radius** is added to allow for imprecision in detection
+
+> each **geofence Loaction Services** can send entrance and exit events
+* dwell time before event triggering can be specified
+* duration of any geofence can be specified in milliseconds (if usefull)
+
+``` XML
+ <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
+ <application android:allowBackup="true">
+ ...
+    <service android:name=".GeofenceTransitionsIntentService"/>
+ <application/>
+```
+
+``` Java
+private GeofencingClient mGeofencingClient;
+@Override
+public void onCreate(Bundle savedInstanceState) {
+    // ...
+    mGeofencingClient = LocationServices.getGeofencingClient(this);
+}
+```
+### PendingIntent
+``` Java
+public class MainActivity extends AppCompatActivity {
+    // ...
+    private PendingIntent getGeofencePendingIntent() {
+        // Reuse the PendingIntent if we already have it.
+        if (mGeofencePendingIntent != null) {
+            return mGeofencePendingIntent;
+        }
+        Intent intent = new Intent(this, GeofenceTransitionsIntentService.class);
+        // We use FLAG_UPDATE_CURRENT so that we get the same pending intent back
+        when
+        // calling addGeofences() and removeGeofences().
+        mGeofencePendingIntent = PendingIntent.getService(this, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+        return mGeofencePendingIntent;
+    }
+```
+* A PendingIntent is a token that you give to a foreign application
+    * e.g. NotificationManager, AlarmManager, Home Screen AppWidgetManager, or other 3rd party applications
+    * to allow the foreign application to use your application's permissions to execute a predefined piece of code that you provide
+
+> A list of geofences
+``` Java
+mGeofenceList.add(new Geofence.Builder()
+    // Set the request ID of the geofence. This is a string to identify this
+    // geofence.
+    .setRequestId(entry.getKey())
+    .setCircularRegion(
+    entry.getValue().latitude,
+    entry.getValue().longitude,
+    Constants.GEOFENCE_RADIUS_IN_METERS
+    )
+    .setExpirationDuration(Constants.GEOFENCE_EXPIRATION_IN_MILLISECONDS)
+    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER |
+    Geofence.GEOFENCE_TRANSITION_EXIT)
+    .build());
+```
+* GEOFENCE_TRANSITION_ENTER triggers when a device enters a geofence,
+* GEOFENCE_TRANSITION_EXIT triggers when a device exits a geofence
+
+> list
+``` Java
+private GeofencingRequest getGeofencingRequest() {
+    GeofencingRequest.Builder builder = new GeofencingRequest.Builder();
+    builder.setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER);
+    builder.addGeofences(mGeofenceList);
+    return builder.build();
+}
+```
+* INITIAL_TRIGGER_ENTER tells Location services that 
+    * GEOFENCE_TRANSITION_ENTER should be triggered if the device is already inside the geofence
+    * INITIAL_TRIGGER_DWELL triggers events only when the user stops for a defined duration within a geofence
+        * reduce "alert spam" resulting from large numbers notifications when a device briefly enters and exits geofences
+
+* use **GeofencingClient.addGeofences()** to add geofences
+``` Java
+mGeofencingClient.addGeofences(getGeofencingRequest(), getGeofencePendingIntent())
+    .addOnSuccessListener(this, new OnSuccessListener<Void>() {
+        @Override
+        public void onSuccess(Void aVoid) {
+            // Geofences added
+            // ...
+        }
+    })
+    .addOnFailureListener(this, new OnFailureListener() {
+        @Override
+        public void onFailure(@NonNull Exception e) {
+            // Failed to add geofences
+            // ...
+        }
+    });
+```
+
+### Transition Intent
+``` Java
+public class GeofenceTransitionsIntentService extends IntentService {
+    // ...
+    protected void onHandleIntent(Intent intent) {
+        GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
+        if (geofencingEvent.hasError()) {
+            String errorMessage = GeofenceErrorMessages.getErrorString(this, geofencingEvent.getErrorCode());
+            Log.e(TAG, errorMessage);
+            return;
+        }
+        // Get the transition type.
+        int geofenceTransition = geofencingEvent.getGeofenceTransition();
+        // Test that the reported transition was of interest.
+        if (geofenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER ||
+            geofenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT) {
+            // Get the geofences that were triggered. A single event can trigger
+            // multiple geofences.
+            List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
+            // Get the transition details as a String.
+            String geofenceTransitionDetails = getGeofenceTransitionDetails(this,geofenceTransition, triggeringGeofences);
+            // Send notification and log the transition details.
+            sendNotification(geofenceTransitionDetails);
+            Log.i(TAG, geofenceTransitionDetails);
+        } else {
+            // Log the error.
+            Log.e(TAG, getString(R.string.geofence_transition_invalid_type,
+            geofenceTransition));}}
+```
+
+> Removing Geofences
+``` Java
+mGeofencingClient.removeGeofences(getGeofencePendingIntent())
+    .addOnSuccessListener(this, new OnSuccessListener<Void>() {
+        @Override
+        public void onSuccess(Void aVoid) {
+            // Geofences removed
+            // ...
+        }
+    })
+    .addOnFailureListener(this, new OnFailureListener() {
+        @Override
+        public void onFailure(@NonNull Exception e) {
+        // Failed to remove geofences
+        // ...
+        }
+    });
+```
+
+### Optimize the power consumption
+* set the notification responsiveness to a higher value to avoid false alarms
+* Use a larger geofence radius
+    * for locations where a user spends a significant amount of time, such as home or work
+        * to avoid false enter / exit evets
+    * for in door locations (esp tall buildings)
+* 100m radius in city - some km in the middle of nowhere
+
+## Activity Recognition
+* The **Activity Recognition Transition API** detects changes in the user's activity
+    * Apps subscribe to transitions in activities of interest and the API notifies your app only when needed
+``` XML
+ <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.example.myapp">
+      <uses-permission android:name="com.google.android.gms.permission.ACTIVITY_RECOGNITION"/>
+</manifest>
+```
+* Must implement:
+    * **ActivityTransitionRequest** to specifies the type of activity and transition
+    * **PendingIntent** callback where your app receives notification 
+
+### Activities
+* Constants in the **DetectedActivity** class
+* The **Transition API** support the following activities:
+    * IN_VEHICLE
+    * ON_BICYCLE
+    * RUNNING
+    * STILL
+    * WALKING
+
+
+``` Java
+List<ActivityTransition> transitions = new ArrayList<>();
+transitions.add(
+    new ActivityTransition.Builder()
+        .setActivityType(DetectedActivity.IN_VEHICLE)
+        .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_ENTER)
+        .build());
+transitions.add(
+    new ActivityTransition.Builder()
+        .setActivityType(DetectedActivity.IN_VEHICLE)
+        .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
+        .build());
+transitions.add(
+    new ActivityTransition.Builder()
+        .setActivityType(DetectedActivity.WALKING)
+        .setActivityTransition(ActivityTransition.ACTIVITY_TRANSITION_EXIT)
+        .build());
+// Then create a request
+ActivityTransitionRequest request = new ActivityTransitionRequest(transitions);
+```
+
+* Create a Task and pass and intent
+* define what to do if the request fails / succeed
+``` Java
+// myPendingIntent is the instance of PendingIntent where the app receives callbacks.
+Task<Void> task = ActivityRecognition.getClient(context).requestActivityTransitionUpdates(request, myPendingIntent);
+
+task.addOnSuccessListener(
+    new OnSuccessListener<Void>() {
+        @Override
+        public void onSuccess(Void result) {
+        // Handle success
+        }});
+task.addOnFailureListener(
+    new OnFailureListener() {
+        @Override
+        public void onFailure(Exception e) {
+        // Handle error
+        }});
+```
+
+> Pending Intent
+``` Java
+Intent intent = new Intent(TRANSITIONS_RECEIVER_ACTION);
+mPendingIntent = PendingIntent.getBroadcast(context, 0, intent, 0);
+mTransitionsReceiver = new TransitionsReceiver(); context.registerReceiver(mTransitionsReceiver, new IntentFilter(TRANSITIONS_RECEIVER_ACTION));
+```
+
+> Transition receiver is a broadcast receiver
+``` Java
+/**
+ * A basic BroadcastReceiver to handle intents from from the Transitions API.
+ */
+public class TransitionsReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        if (!TextUtils.equals(TRANSITIONS_RECEIVER_ACTION, intent.getAction())) {
+            Log.i("MainActivity", "Received an unsupported action in TransitionsReceiver: action=" + intent.getAction());
+            return; 
+        }
+        if (ActivityTransitionResult.hasResult(intent)) {
+            ActivityTransitionResult result = ActivityTransitionResult.extractResult(intent); for (ActivityTransitionEvent event : result.getTransitionEvents()) {
+                String activity = toActivityString(event.getActivityType()); 
+                int transitionType = event.getTransitionType(); 
+                Log.i("MainActivity", "Transition: " + activity + " (" + toTransitionType(transitionType) + ")" + " " + new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date()));
+                if (transitionType==ActivityTransition.ACTIVITY_TRANSITION_EXIT) {
+                    if (currentActivity==null) {
+                        Log.i(“AR”, “EXIT Transition: “+System.currentTimeMillis()+” “+ event.getActivityType());
+                    }
+                } else if (transitionType==ActivityTransition.ACTIVITY_TRANSITION_ENTER){
+                    Log.i(“AR”, “ENTER Transition: “+System.currentTimeMillis()+” “+ event.getActivityType()); 
+                } 
+            } 
+        } 
+    }
+}
+```
+
+> tracking locations only when driving
+* Set up A/R in your app
+* Create a background service tracking the locations using HIGH_ACCURACY start A/R
+    * when the transition IN_VEHICLE ENTER is detected, start tracking locations
+    * when the transition IN_VEHICLE EXIT is detected, stop tracking locations
+
+> Tracking location of employees on large sites
+* Set a geofence around the site
+* When the user enters the site, start tracking locations
+
+> Tracking your employees only when they are driving for work
+* set a geofence around your company site
+* set A/R on the app
+* when the user is driving and has just left the geofence, start tracking
+
+> Create a tourist's app
+* When the user has entered your site and is no longer driving, provide suggestions and information
+* set a geofence around your site
+* detect transition IN_VEHICLE and Exit
