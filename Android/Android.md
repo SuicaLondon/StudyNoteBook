@@ -1183,5 +1183,143 @@ public int onStartCommand(Intent intent, int flags, int startId) {
 ```
 
 ### The Sensor (Barometer)
+``` Java
+public StandardAndroidBarometer() {
+    timePhoneWasLastRebooted = System.currentTimeMillis() -SystemClock.elapsedRealtime();
+    mSamplingRateNano = (long) (BAROMETER_READING_FREQUENCY) * 1000000;
+    mSamplingRateInMSecs = (long) BAROMETER_READING_FREQUENCY;
+    mSensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+    mBarometerSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
+}
 
+/**
+*/
+... }
+ /** it starts the braometer if it is to be started check via isUseBarometer() and if it is
+ not already started
+ * @param context
+ */
+ public void start(final Context context){
+    Log.d(TAG, "Using Standard Barometer");
+    mPressureListener = new SensorEventListener() {
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+ ...
+ @Override
+ public void onAccuracyChanged(Sensor sensor, int accuracy) {
+ }
+```
 
+### Never ending processes
+* Create a delayed broadcast to a receiver in the onDestroy of the service
+    * The receiver will restart the service
+
+``` Java
+public class SensorRestarterBroadcastReceiver extends BroadcastReceiver {
+    @Override
+    public void onReceive(Context context, Intent intent) { 
+        Log.i(SensorRestarterBroadcastReceiver.class.getSimpleName(), "Service Stops! Oooooooooooooppppssssss!!!!"); 
+        context.startService(new Intent(context, SensorService.class));;
+} }
+```
+``` XML
+<application 
+...
+    <receiver
+    android:name=".SensorRestarterBroadcastReceiver" android:enabled="true"
+    android:exported="true" android:label="RestartServiceWhenStopped">
+    </receiver>
+... 
+</application>
+```
+``` Java
+// in the Service
+public void onDestroy() {
+    super.onDestroy();
+    Log.i("EXIT", "onDestroy!");
+    Intent broadcastIntent = new Intent(this, SensorRestarterBroadcastReceiver.class); sendBroadcast(broadcastIntent);
+}
+```
+> If it is necessary to send by a couple of seconds so to wait for the process to die
+``` Java
+new java.util.Timer().schedule(
+    new java.util.TimerTast() {
+        @Override
+        public void run() {
+            // your code here
+        }
+    }
+);
+```
+> This method will not work in Android 7 onwards
+
+### Job Services
+* A specialised type of services that performs based on conditions (e.g. when the phone is charging)
+* it must be declared in the manifest as any other service
+* it must be set up with conditions of execution attached
+``` Java
+ // create a component of type JobService
+ ComponentName componentName = new ComponentName(this, MyJobService.class); 
+//Create the conditions for running the job (connection to a specific network, charging, etc.).
+// you must have at least one constraint
+// If you want to run it in any case, use
+// .setOverrideDeadline(0)
+// see https://stackoverflow.com/questions/51064731/firing-jobservice-without-constraints
+JobInfo jobInfo = new JobInfo.Builder(12, componentName) 
+    .setRequiresCharging(true) 
+    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED) 
+    .build();
+// now schedule the job service
+JobScheduler jobScheduler = (JobScheduler)getSystemService(JOB_SCHEDULER_SERVICE);
+int resultCode = jobScheduler.schedule(jobInfo);
+if (resultCode == JobScheduler.RESULT_SUCCESS) {
+    Log.d(TAG, “Job scheduled!”);
+} else {
+    Log.d(TAG, “Job not scheduled”);
+}
+
+/**
+* The state of at least one job has changed. Here is where we
+* could enforce various
+* policies on when we want to execute jobs.
+* Right now the policy is such:
+* If >1 of the ready jobs is idle mode we send all of them off
+* if more than 2 network connectivity jobs are ready we send them all off.
+* If more than 4 jobs total are ready we send them all off.
+* TODO: It would be nice to consolidate these sort of high-level policies
+somewhere.
+*/
+
+```
+
+### Doze
+* In Doze mode, the system attempts to **conserve battery by restricting apps' access to network and CPU-intensive services**
+    * It also prevents apps from accessing the network and defers their jobs, syncs, and standard alarms.
+* Periodically, the system exits Doze for a brief time to let apps complete their deferred activities. During this maintenance window, the system runs all pending syncs, jobs, and alarms, and lets apps access the network
+
+> Restriction
+* Network access is suspended
+* The system ignores wake locks
+* Standard AlarmManager alarms (including setExact() and setWindow()) are deferred to the next maintenance window
+    * Alarms set with setAlarmClock() continue to fire normally — the system exits Doze shortly before those alarms fire
+* The system does not perform Wi-Fi scans
+* The system does not allow sync adapters to run
+
+### Register a receiver
+``` Java
+void registerDozeReceiver(Context context) {
+    IntentFilter filter = new IntentFilter(); 
+    filter.addAction(PowerManager.ACTION_DEVICE_IDLE_MODE_CHANGED); 
+    context.registerReceiver(mDozeReceiver, filter);
+}
+/**
+ * RECEIVER FOR ANDROID 6 ENTERING DOZE
+ * note that the receiver MUST be declared in code and NOT in AndroidManifest
+ */
+BroadcastReceiver mDozeReceiver = new BroadcastReceiver() { 
+    @Override
+    public void onReceive(Context context, Intent intent) {
+        actOnDoze(context, intent, mNotification, mNotificationId); 
+    }
+};
+```
