@@ -823,6 +823,10 @@ String dateString = formatter.format(date);
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="com.google.android.gms.location.sample.basiclocationsample">
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <!-- <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/> -->
+
+    <application>
+        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+    </application>
 </manifest>
 ```
 
@@ -859,7 +863,7 @@ mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 startLocationUpdates();
 
 private void startLocationUpdates() {
-    mFusedLocationClient.requestLocationUpdates(myLocationRequest, mLocationCallback, null)
+    mFusedLocationClient.requestLocationUpdates(myLocationRequest, mLocationCallback, null);
 }
 
 mLocationCallback = new LocationCallback() {
@@ -1147,8 +1151,10 @@ public static class LocationIntent extends IntentService {
                 for (Location location : locResults.getLocations()) {
                     if (location == null) continue;
                         //do something with the location
-                        Log.i("New Location", "Current location: " + location); mCurrentLocation = location;
-                        mLastUpdateTime = DateFormat.getTimeInstance().format(new Date()); Log.i("MAP", "new location " + mCurrentLocation.toString());
+                        Log.i("New Location", "Current location: " + location); 
+                        mCurrentLocation = location;
+                        mLastUpdateTime = DateFormat.getTimeInstance().format(new Date()); 
+                        Log.i("MAP", "new location " + mCurrentLocation.toString());
                         // check if the activity has not been closed in the meantime
                         if (MapsActivity.getActivity()!=null)
                             // any modification of the user interface must be done on the UI Thread. // The Intent Service is running
