@@ -1265,15 +1265,15 @@ new java.util.Timer().schedule(
 * it must be set up with conditions of execution attached
 ``` Java
  // create a component of type JobService
- ComponentName componentName = new ComponentName(this, MyJobService.class); 
+ ComponentName componentName = new ComponentName(this, MyJobService.class);
 //Create the conditions for running the job (connection to a specific network, charging, etc.).
 // you must have at least one constraint
 // If you want to run it in any case, use
 // .setOverrideDeadline(0)
 // see https://stackoverflow.com/questions/51064731/firing-jobservice-without-constraints
-JobInfo jobInfo = new JobInfo.Builder(12, componentName) 
-    .setRequiresCharging(true) 
-    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED) 
+JobInfo jobInfo = new JobInfo.Builder(12, componentName)
+    .setRequiresCharging(true)
+    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
     .build();
 // now schedule the job service
 JobScheduler jobScheduler = (JobScheduler)getSystemService(JOB_SCHEDULER_SERVICE);
