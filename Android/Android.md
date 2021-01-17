@@ -566,7 +566,7 @@ dependencies {
 
 - Contains the **methods** used for accessing the database
 
-```Java
+``` Java
 @Entity(indices = {@Index(value = {"first_name", "last_name"}, unique = ture)}) // optional parameters
 public class User {
     @PrimaryKey()
